@@ -1,39 +1,106 @@
-const {request,response} = require('express')
+const {request,response} = require('express');
+const bcryptjs = require('bcryptjs');
+const Usuario = require('../models/usuario');
 
-const getUsers = (req = request,res = response) => {
+const getUserById = async(req=request,res=response) => {
+    const {id} = req.params;
+    
+    const query = {
+        _id: id,
+        estado:true
+    }
 
-    const params = req.query;
+    const userFind =  await Usuario.findById(
+                           query
+                        )
 
     res.json({
-        msg:'Get api'
+        userFind
     })
 }
 
-const postUsers = (req = request,res = response) => {
-    const {nombre,edad} = req.body;
+const getUsers = async (req = request,res = response) => {
+
+    const {limite = 0,desde=0} = req.query;
+    const query = {
+        estado:true
+    }
+
+    const usersFind =  Usuario.find(
+                            query
+                        )
+                        .skip(+desde)
+                        .limit(+limite);
+
+    const totalCount =  Usuario.countDocuments(
+        query
+    );
+    const [users,total] = await Promise.all(
+        [usersFind,
+        totalCount]
+    );
+
+    res.json({
+        
+        total,
+        users,
+    })
+}
+
+const postUsers = async (req = request,res = response) => {
+  
+    const {nombre,correo,password,rol} = req.body;
     
+    const usuario = new Usuario({
+        nombre,correo,password,rol
+    });
+
+    const salt = bcryptjs.genSaltSync();
+    usuario.password = bcryptjs.hashSync(password,salt);
+
+    await usuario.save();
+
     res.json({
         msg:'Post api',
-        nombre,
-        edad
+        usuario,
     })
 }
 
-const putUsers = (req=request,res = response) => {
-    const {id} = req.params
+const putUsers = async(req=request,res = response) => {
+    const {id} = req.params;
+
+    const {password,google,_id,...usuario} = req.body;
+
+    if(password){
+        const salt = bcryptjs.genSaltSync();
+        usuario.password = bcryptjs.hashSync(password,salt);
+    }
+
+    const usuarioDB = await Usuario.findByIdAndUpdate(id,usuario);
     res.json({
         msg:'Put api',
-        id
+        usuarioDB
     })
 }
 
-const deleteUsers = (req,res = response) => {
+const deleteUsers = async (req=request,res = response) => {
+    const {id} = req.params;
+
+    const usuario = await Usuario.findByIdAndUpdate(id, {
+        estado: false   
+    }) 
+
+    const usuarioAutenticado= req.usuario;
+
     res.json({
-        msg:'Delete api'
+        usuario,
+        usuarioAutenticado
     })
 }
+
 module.exports= {
     getUsers,
+    getUserById,
     postUsers,
     putUsers,
     deleteUsers

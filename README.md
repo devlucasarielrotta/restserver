@@ -1,8 +1,6 @@
-# Rest server template
+# Rest server 
 
-```
- This app is a rest server template using express
-```
+
 ```
  Type npm install for run the app.
 ```
